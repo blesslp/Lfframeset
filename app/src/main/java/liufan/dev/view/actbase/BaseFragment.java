@@ -20,6 +20,9 @@ public abstract class BaseFragment extends Fragment {
     private LoadingDialog mLoadingDialog;
 
     private View _view;
+    private boolean isVisible;
+    private boolean isPrepared;
+    private boolean isFirst = true;
 
     @Nullable
     @Override
@@ -41,6 +44,38 @@ public abstract class BaseFragment extends Fragment {
         return _view;
     }
 
+    @Override
+    public void onActivityCreated(@Nullable Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        isPrepared = true;
+        initPrepare();
+    }
+
+    protected abstract void initPrepare();
+
+    protected abstract void onInvisible();
+
+    public abstract void lazyinitData();
+
+    protected abstract void onVisible();
+
+    private void lazyLoad() {
+        if (!isPrepared || !isVisible || !isFirst) {
+            onVisible();
+            return;
+        }
+        lazyinitData();
+        isFirst = false;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if (getUserVisibleHint()) {
+            setUserVisibleHint(true);
+        }
+    }
+
     private final void initLoadingDialog() {
         this.mLoadingDialog = new LoadingDialog(getActivity());
     }
@@ -49,15 +84,27 @@ public abstract class BaseFragment extends Fragment {
     @Override
     public void setUserVisibleHint(boolean isVisibleToUser) {
         super.setUserVisibleHint(isVisibleToUser);
-        if(isVisibleToUser && hasCreate) {
-            lazyinitData();
-            hasCreate = false;
+        if (getUserVisibleHint()) {
+            isVisible = true;
+            lazyLoad();
+        }else{
+            isVisible = false;
+            onInvisible();
         }
     }
 
-    public abstract void lazyinitData();
+    @Override
+    public void onHiddenChanged(boolean hidden) {
+        super.onHiddenChanged(hidden);
+        if (hidden) {
+            isVisible = false;
+            onInvisible();
+        }else{
+            isVisible = true;
+            lazyLoad();
+        }
 
-    private boolean hasCreate = false;
+    }
 
     @Override
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
@@ -66,7 +113,6 @@ public abstract class BaseFragment extends Fragment {
             InjectSrvProcessor.process(this);
             initLoadingDialog();
         }
-        hasCreate = true;
     }
 
     /**
