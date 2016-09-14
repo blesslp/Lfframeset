@@ -34,6 +34,7 @@ public abstract class BaseFragment extends Fragment {
                 throw new IllegalArgumentException("没有指定布局文件");
             }
             _view = inflater.inflate(contentViewId, container, false);
+            InjectSrvProcessor.process(this);
         }else{
             final ViewParent parent = _view.getParent();
             if (parent != null) {
@@ -113,7 +114,7 @@ public abstract class BaseFragment extends Fragment {
     public void onViewCreated(View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         if (savedInstanceState == null) {
-            InjectSrvProcessor.process(this);
+
             initLoadingDialog();
         }
     }
