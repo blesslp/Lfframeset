@@ -60,12 +60,15 @@ public abstract class BaseFragment extends Fragment {
     protected abstract void onVisible();
 
     private void lazyLoad() {
-        if (!isPrepared || !isVisible || !isFirst) {
-            onVisible();
+        if (!isPrepared || !isVisible) {
             return;
         }
-        lazyinitData();
-        isFirst = false;
+        if (!isFirst) {
+            onVisible();
+        }else {
+            lazyinitData();
+            isFirst = false;
+        }
     }
 
     @Override
