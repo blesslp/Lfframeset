@@ -16,7 +16,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import liufan.dev.lfframeset.R;
 
-
 /**
  * Created by liufan on 16/4/14.
  */
@@ -27,6 +26,7 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
     private TextView loadMoreTxt;
     private ListView listView;
     private AtomicInteger pageNow = new AtomicInteger(0);
+    private boolean isLoading = false;
 
     public ExSwipeRefreshLayout(Context context) {
         super(context);
@@ -47,7 +47,6 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
     }
 
     private void initView() {
-
         setColorSchemeColors(Color.BLUE, Color.GREEN, Color.YELLOW);
 
         this.listView.setOnScrollListener(new ScrollListener());
@@ -56,6 +55,7 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
             public void onRefresh() {
                 pageNow.set(tempPageConfig);
                 isLoadMore = true;
+                isLoading = true;
                 if (or != null) {
                     or.onRefresh(ExSwipeRefreshLayout.this);
                 }
@@ -63,7 +63,7 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
         });
 
         this.loadMore = View.inflate(getContext(), R.layout.loading_more, null);
-        this.loadMore.setVisibility(View.GONE);
+        this.loadMore.setVisibility(View.VISIBLE);
         this.loadMoreBar = (ProgressBar) loadMore.findViewById(R.id.loadBar);
         this.loadMoreTxt = (TextView) loadMore.findViewById(R.id.loadTxt);
         this.listView.addFooterView(this.loadMore,null,false);
@@ -115,6 +115,16 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
         this.pageNow.set(pageNow);
     }
 
+    private int pageSize = 10;
+
+    public int getPageSize() {
+        return pageSize;
+    }
+
+    public void configInitPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
+
 
     public int getPageNow() {
         return pageNow.intValue();
@@ -129,10 +139,26 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
     private boolean isLoadMore = true;
 
     public void setLoadResult(boolean isOk, String msg) {
+        isLoading = false;
+
+        if (listView.getAdapter().isEmpty()) {
+            this.loadMore.setVisibility(View.GONE);
+            this.loadMoreBar.setVisibility(View.GONE);
+            isLoading = false;
+            isLoadMore = false;
+            return;
+        }
+        this.loadMore.setVisibility(View.VISIBLE);
         if (!isOk) {
+            if(isRefreshing() && listView.getAdapter().getCount() - listView.getFooterViewsCount() - listView.getHeaderViewsCount() == pageSize) {
+                return;
+            }
             //加载失败的话，分页减一
             if (listView.getAdapter().isEmpty() || (listView.getFirstVisiblePosition() == 0 && listView.getLastVisiblePosition() <= listView.getAdapter().getCount()) ) {
-                this.loadMore.setVisibility(View.GONE);
+//                this.loadMore.setVisibility(View.GONE);
+
+                this.loadMoreTxt.setText(msg);
+                this.loadMoreBar.setVisibility(View.GONE);
                 isLoadMore = false;
             }else{
                 this.loadMore.setVisibility(View.VISIBLE);
@@ -143,7 +169,8 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
             }
 
         } else {
-            this.loadMore.setVisibility(View.GONE);
+
+//            this.loadMore.setVisibility(View.GONE);
             isLoadMore = true;
 //            this.listView.removeFooterView(this.loadMore);
         }
@@ -152,11 +179,13 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
     @Override
     public void setRefreshing(boolean refreshing) {
         if (refreshing) {
+            isLoading = true;
             isLoadMore = true;
             pageNow.set(tempPageConfig);
+        }else{
+            isLoading = false;
         }
         super.setRefreshing(refreshing);
-
     }
 
     private void resetLoadMore() {
@@ -193,7 +222,7 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
         @Override
         public void onScrollStateChanged(AbsListView view, int scrollState) {
 
-            if (isBottom && scrollState == SCROLL_STATE_IDLE && isLoadMore) {
+            if (isBottom && isLoadMore && !isLoading) {
                 if (ol != null) {
                     resetLoadMore();
                     ol.onLoadMore(ExSwipeRefreshLayout.this, pageNow.incrementAndGet());
@@ -208,7 +237,7 @@ public class ExSwipeRefreshLayout extends SwipeRefreshLayout {
         @Override
         public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
 
-            isBottom = (visibleItemCount + firstVisibleItem == totalItemCount && firstVisibleItem != 0);
+            isBottom = (visibleItemCount + firstVisibleItem >= totalItemCount -1);
             for (OnScrollListener on : onScrollListeners) {
                 on.onScroll(view, firstVisibleItem,visibleItemCount,totalItemCount);
             }
