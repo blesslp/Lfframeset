@@ -23,7 +23,7 @@ public class RequestBuilder {
 	private MultipartBuilder multipartBuilder;
 	private Request.Builder builder;
 
-	private Map<String, String> debugBody = new LinkedHashMap<String, String>();
+	private Map<String, String> debugBody = new LinkedHashMap<>();
 
 	@Override
 	public String toString() {
@@ -52,6 +52,7 @@ public class RequestBuilder {
 			debugBody.clear();
 			debugBody.put("url", reqUrl);
 		}
+		isRestful = false;
 		if (builder == null) {
 			builder = new Request.Builder();
 		}
@@ -93,9 +94,23 @@ public class RequestBuilder {
 	public void setCache(boolean cache) {
 		cacheControl = cache ? new CacheControl.Builder().onlyIfCached().build() : CacheControl.FORCE_NETWORK;
 	}
+	//处理restful
+	private static final MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+	private boolean isRestful = false;
+	private RequestBody restBody;
+
+	public void setRestParam(String content) {
+		debugBody.put("RESTFUL", content);
+		restBody = RequestBody.create(JSON, content);
+		isRestful = true;
+	}
+
 
 	public Request build() {
 		initBuilder(builder);
+		if (isRestful) {
+			return builder.post(restBody).build();
+		}
 		return builder.post(multipartBuilder.build()).build();
 	}
 

@@ -22,6 +22,7 @@ import com.liufan.xhttp.annotation.MapParam;
 import com.liufan.xhttp.annotation.Mapping;
 import com.liufan.xhttp.annotation.Param;
 import com.liufan.xhttp.annotation.Post;
+import com.liufan.xhttp.annotation.RestParam;
 
 public abstract class ParamHandler {
 
@@ -31,7 +32,7 @@ public abstract class ParamHandler {
 		chainList = Arrays.asList(new MappingHandler(), new PostHandler(),
 				new GetHandler(), new FieldHandler(), new FileHandler(),
 				new HeaderHandler(), new MapParamHandler(),
-				new JsonParamHandler());
+				new JsonParamHandler(),new RestParamHandler());
 	}
 
 	final static void doChain(MethodHandler methodHandler, Annotation anno,
@@ -234,6 +235,26 @@ public abstract class ParamHandler {
 
 		}
 
+	}
+
+	public static class RestParamHandler extends ParamHandler {
+
+		@Override
+		public void apply(MethodHandler methodHandler, Annotation annotation,
+						  RequestBuilder builder, Object arg) {
+			if (arg == null)
+				return;
+			if (arg.getClass() == String.class) {
+				builder.setRestParam(arg.toString());
+			}else{
+				builder.setRestParam(GsonUtils.toJson(arg));
+			}
+		}
+
+		@Override
+		public boolean filter(Annotation anno) {
+			return anno.annotationType() == RestParam.class;
+		}
 	}
 
 }
